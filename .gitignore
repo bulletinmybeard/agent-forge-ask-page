@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vite/
+*.zip
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+
+# Env / secrets
+.env
+.env.*
+
+# Stray empty files from redirected commands (safe to delete)
+/tsc

@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `biome ci` checks formatting + lint + import sorting without writing.
+      # Biome is pinned exactly in package.json, so this matches local output.
+      - name: Biome check
+        run: npx biome ci .
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        run: npm run typecheck
+
+  build:
+    name: Build (node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20', '22']
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Runs tsc --noEmit + both Vite passes (main + content script).
+      - name: Build extension
+        run: npm run build
+
+      - name: Verify dist output
+        run: |
+          for f in manifest.json background.js content.js popup.html sidepanel.html options.html; do
+            test -f "dist/$f" || { echo "missing dist/$f"; exit 1; }
+          done
+          ls -la dist/
+
+      - name: Package unpacked extension
+        if: matrix.node-version == '20'
+        run: |
+          cd dist && zip -r ../agent-forge-ask-page.zip . && cd ..
+          ls -la agent-forge-ask-page.zip
+
+      - name: Upload extension artifact
+        if: matrix.node-version == '20'
+        uses: actions/upload-artifact@v6
+        with:
+          name: agent-forge-ask-page-${{ github.sha }}
+          path: agent-forge-ask-page.zip
+          retention-days: 7
+
+  ci-summary:
+    name: CI Summary
+    needs: [lint, typecheck, build]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## CI Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lint & Format | ${{ needs.lint.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Typecheck | ${{ needs.typecheck.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build | ${{ needs.build.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ needs.lint.result }}" = "success" ] && [ "${{ needs.typecheck.result }}" = "success" ] && [ "${{ needs.build.result }}" = "success" ]; then
+            echo "All CI checks passed." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Some CI checks failed. See the jobs above." >> "$GITHUB_STEP_SUMMARY"
+          fi

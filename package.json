@@ -1,0 +1,33 @@
+{
+  "name": "ask-page",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AskPage — Chrome extension to pick any element (or the whole page) and ask an LLM anything about it.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Robin Schulz",
+  "homepage": "https://github.com/bulletinmybeard/agent-forge-ask-page#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bulletinmybeard/agent-forge-ask-page.git"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && vite build && vite build -c vite.content.config.ts",
+    "build:main": "vite build",
+    "build:content": "vite build -c vite.content.config.ts",
+    "dev:main": "vite build --watch --mode development",
+    "dev:content": "vite build -c vite.content.config.ts --watch --mode development",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.16",
+    "@types/chrome": "^0.0.270",
+    "typescript": "^5.5.0",
+    "vite": "8.0.5"
+  }
+}

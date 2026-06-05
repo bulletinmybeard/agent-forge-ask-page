@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AskPage</title>
+    <style>
+      :root { color-scheme: dark light; font-family: -apple-system, system-ui, sans-serif; }
+      body { width: 320px; margin: 0; padding: 14px 16px; font-size: 13px; }
+      h1 { font-size: 14px; margin: 0 0 10px 0; }
+      .row { display: flex; gap: 6px; margin-bottom: 8px; }
+      .row--inline { align-items: center; }
+      label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.7; margin-bottom: 3px; }
+      input[type="text"], input[type="url"], input[type="password"], select {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 4px 6px;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 12px;
+      }
+      button { padding: 4px 10px; font-size: 12px; cursor: pointer; }
+      button.iconbtn { padding: 2px 6px; font-size: 12px; }
+      .status { font-size: 11px; margin-top: 6px; opacity: 0.8; min-height: 1.2em; }
+      .ok { color: #28a745; }
+      .err { color: #d9534f; }
+      .picker { display: flex; gap: 4px; align-items: center; }
+      .picker select { flex: 1; }
+      .settings-link { display: inline-block; font-size: 11px; color: inherit; opacity: 0.7; text-decoration: underline; cursor: pointer; }
+      .settings-link:hover { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <h1>AskPage</h1>
+    <div>
+      <label for="base">AgentForge base URL</label>
+      <input id="base" type="url" placeholder="https://agent.example.com" />
+    </div>
+    <div>
+      <label for="apikey">API key</label>
+      <input id="apikey" type="password" placeholder="API key (optional)" />
+    </div>
+    <div>
+      <label for="provider">Provider</label>
+      <div class="picker">
+        <select id="provider"></select>
+        <button type="button" id="refresh" class="iconbtn" title="Re-fetch providers">↻</button>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" id="save">Save</button>
+      <button type="button" id="test">Test connection</button>
+    </div>
+    <div class="row">
+      <button type="button" id="inspect">Toggle inspect</button>
+      <button type="button" id="scan">Scan page</button>
+    </div>
+    <div class="row"><a id="open-options" href="#" class="settings-link">Settings…</a></div>
+    <div id="status" class="status"></div>
+    <script type="module" src="popup.ts"></script>
+  </body>
+</html>

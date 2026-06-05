@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AskPage</title>
+    <style>
+      :root { color-scheme: dark light; font-family: -apple-system, system-ui, sans-serif; }
+      body { margin: 0; padding: 14px 16px; font-size: 13px; line-height: 1.45; }
+      /* Ensure the hidden attribute wins over element display rules (e.g. the
+       * collect-suggest banner sets display:flex, which would otherwise defeat
+       * [hidden]). */
+      [hidden] { display: none !important; }
+      h1 { font-size: 14px; margin: 0 0 10px 0; }
+      h2 { font-size: 12px; margin: 14px 0 6px 0; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.7; }
+      .muted { opacity: 0.7; font-size: 12px; }
+      .small { font-size: 11px; }
+      .meta { font-size: 11px; opacity: 0.7; margin: 0 0 8px 0; font-family: ui-monospace, SFMono-Regular, monospace; }
+      .section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(127, 127, 127, 0.2); }
+      .ok { color: #28a745; font-size: 12px; margin: 0; }
+      .err { color: #d9534f; font-size: 12px; margin: 0; word-break: break-word; }
+
+      textarea, input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 8px 10px;
+        border-radius: 4px;
+        border: 1px solid rgba(127, 127, 127, 0.3);
+        background: rgba(127, 127, 127, 0.05);
+        color: inherit;
+        resize: vertical;
+      }
+      textarea { min-height: 96px; }
+      .advanced-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+        margin-top: 6px;
+        font-size: 11px;
+      }
+      .advanced-grid label { display: flex; flex-direction: column; gap: 2px; opacity: 0.85; }
+      .advanced-grid input { padding: 3px 6px; font-size: 12px; }
+      .attach-screenshot { display: flex; align-items: center; gap: 6px; margin: 6px 0 0 0; }
+      .attach-screenshot input[type="checkbox"] { width: auto; margin: 0; }
+      .actions { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+      button { padding: 5px 12px; font-size: 12px; cursor: pointer; }
+      .link-btn {
+        background: transparent;
+        border: none;
+        text-decoration: underline;
+        opacity: 0.7;
+        padding: 0;
+        font-size: 11px;
+        cursor: pointer;
+        color: inherit;
+      }
+      .link-btn:hover { opacity: 1; }
+      .collect-suggest {
+        margin: 6px 0;
+        padding: 7px 10px;
+        border: 1px solid rgba(255, 193, 7, 0.4);
+        border-radius: 4px;
+        background: rgba(255, 193, 7, 0.08);
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .collect-suggest button { padding: 3px 10px; font-size: 11px; }
+
+      pre.json {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        background: rgba(127, 127, 127, 0.08);
+        border: 1px solid rgba(127, 127, 127, 0.18);
+        border-radius: 4px;
+        padding: 8px 10px;
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 70vh;
+        overflow: auto;
+      }
+
+      .answer {
+        background: rgba(74, 144, 226, 0.05);
+        border: 1px solid rgba(74, 144, 226, 0.3);
+        border-radius: 4px;
+        padding: 12px 14px;
+      }
+      .answer .md-h { font-size: 13px; margin: 12px 0 4px 0; opacity: 0.9; }
+      .answer .md-h:first-child { margin-top: 0; }
+      .answer h1.md-h { font-size: 15px; font-weight: 700; }
+      .answer h2.md-h { font-size: 14px; font-weight: 600; }
+      .answer .md-p { margin: 0 0 8px 0; }
+      .answer .md-list { margin: 0 0 8px 0; padding-left: 20px; }
+      .answer .md-list li { margin-bottom: 3px; }
+      .answer .md-quote {
+        margin: 0 0 8px 0;
+        padding: 4px 10px;
+        border-left: 3px solid rgba(127, 127, 127, 0.4);
+        opacity: 0.85;
+      }
+      .answer pre.md-code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        background: rgba(127, 127, 127, 0.1);
+        border: 1px solid rgba(127, 127, 127, 0.2);
+        border-radius: 3px;
+        padding: 8px 10px;
+        margin: 0 0 8px 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        /* No overflow-x — we want vertical wrapping, not a sideways
+         * scrollbar. anywhere forces breaks inside unbroken tokens. */
+        overflow-wrap: anywhere;
+      }
+      .answer .md-inline-code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 90%;
+        background: rgba(127, 127, 127, 0.15);
+        border: 1px solid rgba(127, 127, 127, 0.18);
+        border-radius: 3px;
+        padding: 1px 5px;
+        /* Force long URLs / hashes to break instead of pushing the
+         * card past the side-panel edge. anywhere is more aggressive
+         * than break-word: it'll split mid-token if needed. */
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .answer .md-link {
+        color: #4a90e2;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .answer .md-list li { overflow-wrap: anywhere; }
+      .answer hr { border: 0; border-top: 1px solid rgba(127, 127, 127, 0.2); margin: 12px 0; }
+      /* GFM tables. display:block + overflow-x lets a wide table scroll inside
+       * the narrow side panel instead of pushing the card past its edge. */
+      .answer table.md-table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        border-collapse: collapse;
+        margin: 0 0 10px 0;
+        font-size: 12px;
+      }
+      .answer .md-table th,
+      .answer .md-table td {
+        border: 1px solid rgba(127, 127, 127, 0.25);
+        padding: 4px 8px;
+        text-align: left;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+      .answer .md-table th { font-weight: 600; background: rgba(127, 127, 127, 0.12); }
+      .answer .md-table tbody tr:nth-child(even) { background: rgba(127, 127, 127, 0.06); }
+
+      /* Chat turn list */
+      .chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+      .chat:empty { display: none; }
+      .turn-user {
+        align-self: flex-end;
+        max-width: 90%;
+        background: rgba(127, 127, 127, 0.12);
+        border: 1px solid rgba(127, 127, 127, 0.18);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .turn-assistant {
+        background: rgba(74, 144, 226, 0.05);
+        border: 1px solid rgba(74, 144, 226, 0.3);
+        border-radius: 4px;
+        padding: 12px 14px;
+        position: relative;
+      }
+      .turn-assistant-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .turn-meta {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 10px;
+        opacity: 0.6;
+        margin: 0;
+      }
+      .turn-copy {
+        padding: 2px 8px;
+        font-size: 11px;
+        cursor: pointer;
+        background: transparent;
+        border: 1px solid rgba(127, 127, 127, 0.3);
+        border-radius: 3px;
+        color: inherit;
+      }
+      .turn-copy:hover { background: rgba(127, 127, 127, 0.1); }
+      .turn-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(74, 144, 226, 0.25);
+      }
+      .turn-action {
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        background: rgba(74, 144, 226, 0.12);
+        border: 1px solid rgba(74, 144, 226, 0.45);
+        border-radius: 4px;
+        color: inherit;
+      }
+      .turn-action:hover:not(:disabled) { background: rgba(74, 144, 226, 0.22); }
+      .turn-action:disabled { opacity: 0.6; cursor: default; }
+      .turn-actions-status { margin: 4px 0 0 0; word-break: break-word; }
+      .turn-pending {
+        opacity: 0.8;
+        font-size: 12px;
+        padding: 8px 12px;
+        font-style: italic;
+      }
+
+      /* Secret / sudo password modal */
+      .secret-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .secret-box {
+        background: Canvas;
+        color: CanvasText;
+        border: 1px solid rgba(127, 127, 127, 0.35);
+        border-radius: 6px;
+        padding: 16px 18px;
+        width: min(280px, 90vw);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 13px;
+      }
+      .secret-box p { margin: 0; }
+      .secret-box input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 6px 9px;
+        border-radius: 4px;
+        border: 1px solid rgba(127, 127, 127, 0.3);
+        background: rgba(127, 127, 127, 0.05);
+        color: inherit;
+      }
+      .secret-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AskPage</h1>
+    <div id="empty" class="muted">
+      Open the AskPage popup → <strong>Toggle inspect</strong> to pick an
+      element, or <strong>Scan page</strong> to ask about the whole page.
+    </div>
+
+    <div id="content" hidden>
+      <p class="meta" id="meta"></p>
+
+      <div class="section" id="collect-section" hidden>
+        <h2>Auto-collect items</h2>
+        <p class="muted small">
+          For lazy-loaded / virtualised lists. The page scrolls until no new
+          matches appear, then the items get added to the snapshot.
+        </p>
+        <label for="collect-selector" class="muted small">CSS selector</label>
+        <input id="collect-selector" type="text" placeholder=".list-item-title" />
+        <div class="actions">
+          <button type="button" id="collect-btn">Collect</button>
+          <button type="button" id="collect-cancel-btn" hidden>Cancel</button>
+          <button type="button" id="open-settings" class="link-btn" style="margin-left: auto;">Tuning…</button>
+        </div>
+        <p class="muted" id="collect-status"></p>
+      </div>
+
+      <div id="chat" class="chat"></div>
+
+      <p class="muted" id="status">Type a question and hit Ask.</p>
+
+      <label for="prompt" class="muted small">Your question</label>
+      <textarea id="prompt" placeholder="e.g., Extract every external link as a bulleted list. Then ask a follow-up like: now group them by domain.&#10;&#10;Enter to send · Shift+Enter for newline"></textarea>
+
+      <div id="collect-suggest" class="collect-suggest" hidden>
+        <span>This looks like a full-list question. Collect all items first so the agent sees the whole list?</span>
+        <button type="button" id="collect-suggest-btn">Collect now</button>
+      </div>
+
+      <div id="secret-modal" class="secret-modal" hidden>
+        <div class="secret-box">
+          <p id="secret-prompt"></p>
+          <input id="secret-input" type="password" placeholder="sudo password" />
+          <div class="secret-actions">
+            <button type="button" id="secret-submit">Submit</button>
+            <button type="button" id="secret-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <label class="muted small attach-screenshot">
+        <input type="checkbox" id="attach-screenshot" />
+        Attach screenshot of the visible viewport (vision-capable model required)
+      </label>
+
+      <label class="muted small attach-screenshot">
+        <input type="checkbox" id="auto-allow" checked />
+        Auto-allow tool actions (downloads, fetches) — uncheck to confirm each
+      </label>
+
+      <div class="actions">
+        <button type="button" id="ask">Ask</button>
+        <button type="button" id="copy-snapshot">Copy snapshot</button>
+        <button type="button" id="clear">Clear conversation</button>
+      </div>
+
+      <div class="section">
+        <details>
+          <summary class="muted small">Show raw snapshot (sent to AgentForge)</summary>
+          <pre id="snapshot" class="json"></pre>
+        </details>
+      </div>
+    </div>
+    <script type="module" src="sidepanel.ts"></script>
+  </body>
+</html>
