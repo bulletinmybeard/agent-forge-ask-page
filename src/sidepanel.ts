@@ -70,8 +70,10 @@ const AGENT_FRAMING =
   "happened to be visible. When asked to extract or save such a list, use EVERY entry in " +
   "collected_items.items, never summarize or sample, and report the true count. Use the exact " +
   "filename the user gives; if none is given, pick one and state the real name you actually wrote " +
-  "(never report a different, invented name). Use web_fetch to read a URL. Answer in Markdown, " +
-  "lead with the answer, no preamble.";
+  "(never report a different, invented name). Answer questions from the snapshot and the " +
+  "conversation so far — that is your context. If the answer is not in them, say so plainly " +
+  "rather than fetching or guessing. Only use web_fetch or other tools when the user explicitly " +
+  "asks you to fetch, download, or save something. Answer in Markdown, lead with the answer, no preamble.";
 
 // -- Session / WebSocket lifecycle ------------------------------------------
 
@@ -594,15 +596,20 @@ async function ask(): Promise<void> {
     // download_file / write_file as structured tools instead of shelling out.
     // (Origin auto-detect through traefik proved unreliable, so send it
     // explicitly; the backend only honours the literal "browser" value.)
-    const overrides: QueryOverrides = { tool_profile: "browser" };
+    // Keep the first-turn page snapshot in server-side history across follow-ups.
+    // A full whole-page snapshot (MAX_PAGE_TEXT_CHARS + links/meta/collected_items
+    // + framing) can run ~40 KB; request enough to hold it. AgentForge clamps this
+    // to its own safe ceiling, so over-asking is harmless.
+    const overrides: QueryOverrides = { tool_profile: "browser", history_char_limit: 48000 };
     if (settings.provider.trim()) overrides.provider = settings.provider.trim();
 
-    // On follow-ups the full snapshot is not resent (too large, and the
-    // server-side history trims it). Carry the page URL forward so the agent
-    // can re-fetch the live page for detail the trimmed snapshot no longer
-    // holds — pairs with the agent's "gather missing info" rule.
+    // On follow-ups the full snapshot is not resent (too large). The server now
+    // preserves the ask-page snapshot in conversation history, so the agent still
+    // has the page as context. Keep a light page reference but do NOT tell it to
+    // web_fetch — the page may be local/unfetchable, and answers should come from
+    // the snapshot + conversation unless the user explicitly asks to act.
     const followupPrefix = lastSnapshot.page_url
-      ? `[Current page: ${lastSnapshot.page_url}. The full page snapshot was sent earlier in this conversation. web_fetch this URL if you need detail beyond what you recall.]\n`
+      ? `[Continuing about the same page (${lastSnapshot.page_url}). Its snapshot is earlier in this conversation — use that as your context.]\n`
       : "";
     const text = sentFirstQuery
       ? `@agent ${followupPrefix}${question}`

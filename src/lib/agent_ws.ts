@@ -16,6 +16,7 @@ export interface QueryOverrides {
   provider?: string;
   model?: string;
   source?: string;
+  history_char_limit?: number;
   [k: string]: unknown;
 }
 
