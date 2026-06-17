@@ -6,7 +6,8 @@
  * lazy-list scroll loop is configured here instead of inline in the panel.
  */
 
-import { loadSettings, saveSettings } from "./lib/api";
+import { loadProfiles, loadSettings, saveSettings, testConnection } from "./lib/api";
+import type { ProfileList } from "./lib/types";
 import { DEFAULT_SETTINGS } from "./lib/types";
 
 const maxItemsEl = document.getElementById("collect-max-items") as HTMLInputElement;
@@ -18,9 +19,52 @@ const saveBtn = document.getElementById("save") as HTMLButtonElement;
 const resetBtn = document.getElementById("reset") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLSpanElement;
 
+const baseInput = document.getElementById("base") as HTMLInputElement;
+const apikeyInput = document.getElementById("apikey") as HTMLInputElement;
+const providerSelect = document.getElementById("provider") as HTMLSelectElement;
+const refreshBtn = document.getElementById("refresh") as HTMLButtonElement;
+const connSaveBtn = document.getElementById("conn-save") as HTMLButtonElement;
+const connTestBtn = document.getElementById("conn-test") as HTMLButtonElement;
+const connStatusEl = document.getElementById("conn-status") as HTMLSpanElement;
+
+let profiles: ProfileList | null = null;
+
 function setStatus(text: string, kind: "ok" | "err" | "" = ""): void {
   statusEl.textContent = text;
   statusEl.className = kind;
+}
+
+function setConnStatus(text: string, kind: "ok" | "err" | "" = ""): void {
+  connStatusEl.textContent = text;
+  connStatusEl.className = kind;
+}
+
+function makeOption(value: string, label: string): HTMLOptionElement {
+  const opt = document.createElement("option");
+  opt.value = value;
+  opt.textContent = label;
+  return opt;
+}
+
+function renderProviders(selected: string): void {
+  const list = [...(profiles?.providers ?? [])];
+  if (selected && !list.includes(selected)) {
+    list.unshift(selected);
+  }
+  providerSelect.replaceChildren(...list.map((p) => makeOption(p, p)));
+  providerSelect.value = selected;
+}
+
+async function refreshProviders(): Promise<void> {
+  setConnStatus("Loading providers...");
+  try {
+    profiles = await loadProfiles();
+    const s = await loadSettings();
+    renderProviders(s.provider);
+    setConnStatus(`Loaded ${profiles.providers.length} providers.`, "ok");
+  } catch (e) {
+    setConnStatus(`Couldn't load providers: ${e}`, "err");
+  }
 }
 
 function fill(values: {
@@ -46,7 +90,30 @@ function readInt(el: HTMLInputElement, min: number, fallback: number): number {
 async function init(): Promise<void> {
   const s = await loadSettings();
   fill(s);
+  baseInput.value = s.agentforge_base_url;
+  apikeyInput.value = s.agentforge_token;
+  renderProviders(s.provider);
+  await refreshProviders();
 }
+
+refreshBtn.addEventListener("click", () => {
+  refreshProviders().catch(console.error);
+});
+
+connSaveBtn.addEventListener("click", async () => {
+  await saveSettings({
+    agentforge_base_url: baseInput.value.trim(),
+    agentforge_token: apikeyInput.value.trim(),
+    provider: providerSelect.value,
+  });
+  setConnStatus("Saved.", "ok");
+});
+
+connTestBtn.addEventListener("click", async () => {
+  setConnStatus("Testing...");
+  const r = await testConnection();
+  setConnStatus(r.ok ? `OK - ${r.detail}` : `Failed - ${r.detail}`, r.ok ? "ok" : "err");
+});
 
 saveBtn.addEventListener("click", async () => {
   try {
