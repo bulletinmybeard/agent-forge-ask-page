@@ -11,7 +11,7 @@
  *     and other tools execute on the AgentForge workers, not in the browser.
  *  5. The final answer (agent.result.text) renders as Markdown.
  *
- * A new snapshot (new Toggle-inspect click or new Scan page) starts a fresh
+ * A new snapshot (new Pick-element click or new Whole-page scan) starts a fresh
  * session; "Clear conversation" does the same without dropping the snapshot.
  */
 
@@ -775,7 +775,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 /** Drain any snapshot the background buffered while we were still loading, so
- *  Scan page works in one click. */
+ *  Ask whole page works in one click. */
 async function drainPendingSnapshot(): Promise<void> {
   try {
     const { pendingSnapshot } = await chrome.storage.session.get("pendingSnapshot");

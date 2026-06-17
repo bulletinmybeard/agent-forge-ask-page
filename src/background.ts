@@ -21,8 +21,8 @@
 
 // Per-tab scoping (matches the Claude extension UX): disable the side
 // panel globally so it doesn't show up in Chrome's panel picker on
-// random tabs. The popup's "Toggle inspect" handler enables it
-// per-tab when the user explicitly activates WIBT on a page.
+// random tabs. The popup's "Pick element" handler enables it
+// per-tab when the user explicitly activates AskPage on a page.
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setOptions({ enabled: false }).catch(() => {});
 });
@@ -41,7 +41,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (!tab?.id) return;
   // Inject content.js on demand (idempotent via the IIFE guard) so the
   // shortcut works on tabs that were open before the extension loaded.
-  // Same fix as the popup's Toggle inspect button.
+  // Same fix as the popup's Pick element button.
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id, allFrames: true },
@@ -71,7 +71,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === "captured" && msg.snapshot) {
     // Buffer the snapshot so the side panel can pick it up even if it
-    // wasn't mounted yet when this message arrived (Scan page race —
+    // wasn't mounted yet when this message arrived (Ask whole page race —
     // snapshot can land before the panel JS has hooked its listeners).
     // chrome.storage.session is in-memory + scoped to the browser
     // session, so it survives SW eviction but doesn't persist to disk.
