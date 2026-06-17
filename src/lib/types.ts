@@ -181,6 +181,7 @@ export interface Settings {
   collect_idle: number; // consecutive idle scrolls before stopping
   collect_timeout_s: number;
   collect_wait_ms: number; // wait between scrolls
+  confirm_on_nav: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -192,6 +193,7 @@ export const DEFAULT_SETTINGS: Settings = {
   collect_idle: 3,
   collect_timeout_s: 60,
   collect_wait_ms: 1200,
+  confirm_on_nav: true,
 };
 
 export interface ProfileEntry {

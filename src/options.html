@@ -50,6 +50,8 @@
         color: inherit;
       }
       label { margin-top: 10px; }
+      .checkbox-row { display: flex; align-items: center; gap: 6px; flex-direction: row; cursor: pointer; }
+      .checkbox-row input[type="checkbox"] { width: auto; margin: 0; }
     </style>
   </head>
   <body>
@@ -79,6 +81,15 @@
       <button type="button" id="conn-test">Test connection</button>
       <span id="conn-status"></span>
     </div>
+
+    <h2>Behavior</h2>
+    <label class="checkbox-row">
+      <input type="checkbox" id="confirm-on-nav" />
+      Confirm before discarding conversations
+    </label>
+    <p class="muted small" style="margin: 4px 0 0 0;">
+      When a page navigates or reloads, ask before clearing an active conversation.
+    </p>
 
     <h2>Auto-collect</h2>
     <div class="grid">

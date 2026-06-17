@@ -44,6 +44,9 @@ const scopePageBtn = document.getElementById("scope-page") as HTMLButtonElement;
 const staleEl = document.getElementById("stale") as HTMLDivElement;
 const stalePickBtn = document.getElementById("stale-pick") as HTMLButtonElement;
 const stalePageBtn = document.getElementById("stale-page") as HTMLButtonElement;
+const navConfirmEl = document.getElementById("nav-confirm") as HTMLDivElement;
+const navDiscardBtn = document.getElementById("nav-discard") as HTMLButtonElement;
+const navKeepBtn = document.getElementById("nav-keep") as HTMLButtonElement;
 const attachScreenshotEl = document.getElementById("attach-screenshot") as HTMLInputElement;
 const autoAllowEl = document.getElementById("auto-allow") as HTMLInputElement;
 const secretModal = document.getElementById("secret-modal") as HTMLDivElement;
@@ -57,6 +60,7 @@ let pendingTurnEl: HTMLDivElement | null = null;
 let collecting = false;
 let trackedTabId: number | null = null;
 let trackedUrl: string | null = null;
+let navConfirmShowing = false;
 
 // Agent WebSocket — one session per snapshot/conversation.
 let ws: AgentWS | null = null;
@@ -127,6 +131,8 @@ function renderSnapshot(snap: PageSnapshot): void {
 
   emptyEl.hidden = true;
   staleEl.hidden = true;
+  navConfirmEl.hidden = true;
+  navConfirmShowing = false;
   contentEl.hidden = false;
 
   if (snap.scope_kind === "element" && snap.element) {
@@ -260,6 +266,14 @@ function resetForNavigation(): void {
   emptyEl.hidden = true;
   staleEl.hidden = false;
   resetCollectUI();
+}
+
+function showNavConfirm(): void {
+  navConfirmShowing = true;
+  contentEl.hidden = true;
+  emptyEl.hidden = true;
+  staleEl.hidden = true;
+  navConfirmEl.hidden = false;
 }
 
 // -- Auto-collect ----------------------------------------------------------
@@ -481,6 +495,18 @@ stalePageBtn.addEventListener("click", async () => {
   chrome.tabs.sendMessage(tabId, { type: "scan-page" }).catch((e) => {
     setStatus(`Couldn't reach content script: ${e}`, "err");
   });
+});
+
+navDiscardBtn.addEventListener("click", () => {
+  navConfirmShowing = false;
+  navConfirmEl.hidden = true;
+  resetForNavigation();
+});
+
+navKeepBtn.addEventListener("click", () => {
+  navConfirmShowing = false;
+  navConfirmEl.hidden = true;
+  contentEl.hidden = false;
 });
 
 // Live red-dashed highlight of the targeted selector while editing it.
@@ -791,12 +817,27 @@ async function drainPendingSnapshot(): Promise<void> {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (trackedTabId === null || tabId !== trackedTabId) return;
   if (!lastSnapshot && !trackedUrl) return;
+  if (navConfirmShowing) return;
 
   const urlChanged = typeof changeInfo.url === "string" && changeInfo.url !== trackedUrl;
   const reloaded = changeInfo.status === "complete" && lastSnapshot !== null;
 
   if (urlChanged || reloaded) {
     trackedUrl = changeInfo.url ?? trackedUrl;
+
+    const hasConversation = turns.some((t) => t.role === "assistant");
+    if (hasConversation) {
+      navConfirmShowing = true;
+      loadSettings().then((settings) => {
+        if (settings.confirm_on_nav) {
+          showNavConfirm();
+        } else {
+          navConfirmShowing = false;
+          resetForNavigation();
+        }
+      });
+      return;
+    }
     resetForNavigation();
   }
 });

@@ -26,6 +26,7 @@ const refreshBtn = document.getElementById("refresh") as HTMLButtonElement;
 const connSaveBtn = document.getElementById("conn-save") as HTMLButtonElement;
 const connTestBtn = document.getElementById("conn-test") as HTMLButtonElement;
 const connStatusEl = document.getElementById("conn-status") as HTMLSpanElement;
+const confirmOnNavEl = document.getElementById("confirm-on-nav") as HTMLInputElement;
 
 let profiles: ProfileList | null = null;
 
@@ -93,6 +94,7 @@ async function init(): Promise<void> {
   baseInput.value = s.agentforge_base_url;
   apikeyInput.value = s.agentforge_token;
   renderProviders(s.provider);
+  confirmOnNavEl.checked = s.confirm_on_nav;
   await refreshProviders();
 }
 
@@ -123,6 +125,7 @@ saveBtn.addEventListener("click", async () => {
       collect_idle: readInt(idleEl, 1, DEFAULT_SETTINGS.collect_idle),
       collect_timeout_s: readInt(timeoutEl, 1, DEFAULT_SETTINGS.collect_timeout_s),
       collect_wait_ms: readInt(waitEl, 200, DEFAULT_SETTINGS.collect_wait_ms),
+      confirm_on_nav: confirmOnNavEl.checked,
     });
     // Reflect the clamped values back into the fields.
     fill(await loadSettings());
@@ -134,6 +137,7 @@ saveBtn.addEventListener("click", async () => {
 
 resetBtn.addEventListener("click", async () => {
   fill(DEFAULT_SETTINGS);
+  confirmOnNavEl.checked = DEFAULT_SETTINGS.confirm_on_nav;
   setStatus("Defaults restored — click Save to apply.", "");
 });
 

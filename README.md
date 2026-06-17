@@ -40,8 +40,8 @@ No LLM-generated code ever runs in the page. Tool calls with side effects pass t
 
 | Scope | How | What it captures |
 |:------|:----|:-----------------|
-| Element | Toggle inspect, hover-highlight, click an element | That element's text + outline, plus its anchors and images |
-| Page | Scan the whole page | `<body>` text + outline, page-wide anchors, images, and scripts |
+| Element | Pick element, hover-highlight, click an element | That element's text + outline, plus its anchors and images |
+| Page | Ask whole page | `<body>` text + outline, page-wide anchors, images, and scripts |
 | Auto-collect | Give a selector. AskPage scrolls and gathers | A flat list of every matching item (text, key attributes, href) across infinite-scroll / paginated lists |
 
 Auto-collect is tunable on the options page (max items, max scrolls, idle threshold, timeout, wait between scrolls) for sites that lazy-load.
@@ -102,6 +102,7 @@ Settings live in `chrome.storage.local`, edited on the options page:
 | `collect_idle` | `3` | Auto-collect: idle scrolls before stopping |
 | `collect_timeout_s` | `60` | Auto-collect: hard time cap |
 | `collect_wait_ms` | `1200` | Auto-collect: wait between scrolls |
+| `confirm_on_nav` | `true` | Ask before discarding an active conversation when the page navigates or reloads |
 
 ## Permissions
 
