@@ -39,6 +39,8 @@ const collectSuggestEl = document.getElementById("collect-suggest") as HTMLDivEl
 const collectSuggestBtn = document.getElementById("collect-suggest-btn") as HTMLButtonElement;
 const collectCancelBtn = document.getElementById("collect-cancel-btn") as HTMLButtonElement;
 const collectStatusEl = document.getElementById("collect-status") as HTMLParagraphElement;
+const scopePickBtn = document.getElementById("scope-pick") as HTMLButtonElement;
+const scopePageBtn = document.getElementById("scope-page") as HTMLButtonElement;
 const attachScreenshotEl = document.getElementById("attach-screenshot") as HTMLInputElement;
 const autoAllowEl = document.getElementById("auto-allow") as HTMLInputElement;
 const secretModal = document.getElementById("secret-modal") as HTMLDivElement;
@@ -84,6 +86,11 @@ function resetSession(): void {
   sentFirstQuery = false;
 }
 
+async function activeTabId(): Promise<number | null> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab?.id ?? null;
+}
+
 async function ensureConnected(): Promise<AgentWS> {
   const settings = await loadSettings();
   if (!settings.agentforge_base_url.trim()) {
@@ -97,10 +104,16 @@ async function ensureConnected(): Promise<AgentWS> {
 // -- Rendering helpers ------------------------------------------------------
 
 function renderSnapshot(snap: PageSnapshot): void {
+  const isRescan = lastSnapshot !== null && turns.length > 0;
   lastSnapshot = snap;
-  turns = [];
-  pendingTurnEl = null;
-  resetSession();
+
+  if (!isRescan) {
+    turns = [];
+    pendingTurnEl = null;
+    resetSession();
+    chatEl.replaceChildren();
+  }
+
   emptyEl.hidden = true;
   contentEl.hidden = false;
 
@@ -123,9 +136,13 @@ function renderSnapshot(snap: PageSnapshot): void {
   snapshotEl.textContent = JSON.stringify(snap, null, 2);
   collectSuggestEl.hidden = true;
   void clearSelectorHighlight();
-  chatEl.replaceChildren();
-  setStatus("Type a question and hit Ask (or press Enter).", "");
   resetCollectUI();
+
+  if (isRescan) {
+    setStatus("Snapshot updated.", "ok");
+  } else {
+    setStatus("Type a question and hit Ask (or press Enter).", "");
+  }
   promptEl.focus();
 }
 
@@ -246,8 +263,8 @@ async function startCollect(): Promise<void> {
   const timeout_ms = Math.max(1, s.collect_timeout_s || 60) * 1000;
   const scroll_wait_ms = Math.max(200, s.collect_wait_ms || 1200);
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) {
+  const tabId = await activeTabId();
+  if (!tabId) {
     collectStatusEl.textContent = "No active tab.";
     collectStatusEl.className = "err";
     return;
@@ -262,9 +279,9 @@ async function startCollect(): Promise<void> {
   void clearSelectorHighlight(); // drop the dashed outline while the page scrolls
   // The content script may be absent/orphaned (extension reloaded, fresh SPA
   // nav). Inject on demand (idempotent) before messaging it, like the popup.
-  await ensureContentScript(tab.id);
+  await ensureContentScript(tabId);
   try {
-    await chrome.tabs.sendMessage(tab.id, {
+    await chrome.tabs.sendMessage(tabId, {
       type: "auto-collect",
       options: { selector, max_items, max_scrolls, idle_threshold, timeout_ms, scroll_wait_ms },
     });
@@ -279,9 +296,9 @@ async function startCollect(): Promise<void> {
 
 async function cancelCollect(): Promise<void> {
   if (!collecting) return;
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  await chrome.tabs.sendMessage(tab.id, { type: "auto-collect-cancel" }).catch(() => {});
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  await chrome.tabs.sendMessage(tabId, { type: "auto-collect-cancel" }).catch(() => {});
   collectStatusEl.textContent = "Cancelling…";
 }
 
@@ -360,16 +377,16 @@ async function ensureContentScript(tabId: number): Promise<boolean> {
 /** Outline every element matching `selector` on the page in red dashed, so the
  *  user sees exactly what the collect selector targets. */
 async function sendSelectorHighlight(selector: string): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  await ensureContentScript(tab.id);
-  chrome.tabs.sendMessage(tab.id, { type: "highlight-selector", selector }).catch(() => {});
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  await ensureContentScript(tabId);
+  chrome.tabs.sendMessage(tabId, { type: "highlight-selector", selector }).catch(() => {});
 }
 
 async function clearSelectorHighlight(): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  chrome.tabs.sendMessage(tab.id, { type: "highlight-clear" }).catch(() => {});
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  chrome.tabs.sendMessage(tabId, { type: "highlight-clear" }).catch(() => {});
 }
 
 // Heuristic: does the question imply collecting a whole / lazy list?
@@ -399,6 +416,25 @@ collectSuggestBtn.addEventListener("click", () => {
   collectSuggestEl.hidden = true;
   startCollect().catch(console.error);
 });
+
+scopePickBtn.addEventListener("click", async () => {
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  await ensureContentScript(tabId);
+  chrome.tabs.sendMessage(tabId, { type: "toggle-inspect" }).catch((e) => {
+    setStatus(`Couldn't reach content script: ${e}`, "err");
+  });
+});
+
+scopePageBtn.addEventListener("click", async () => {
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  await ensureContentScript(tabId);
+  chrome.tabs.sendMessage(tabId, { type: "scan-page" }).catch((e) => {
+    setStatus(`Couldn't reach content script: ${e}`, "err");
+  });
+});
+
 // Live red-dashed highlight of the targeted selector while editing it.
 collectSelectorEl.addEventListener("focus", () => {
   void sendSelectorHighlight(collectSelectorEl.value.trim());

@@ -15,6 +15,25 @@
       .muted { opacity: 0.7; font-size: 12px; }
       .small { font-size: 11px; }
       .meta { font-size: 11px; opacity: 0.7; margin: 0 0 8px 0; font-family: ui-monospace, SFMono-Regular, monospace; }
+      .scope-bar {
+        background: rgba(127, 127, 127, 0.06);
+        border: 1px solid rgba(127, 127, 127, 0.15);
+        border-radius: 4px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+      }
+      .scope-bar .meta { margin: 0 0 6px 0; }
+      .scope-actions { display: flex; gap: 6px; }
+      .scope-btn {
+        padding: 3px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        background: rgba(127, 127, 127, 0.08);
+        border: 1px solid rgba(127, 127, 127, 0.25);
+        border-radius: 3px;
+        color: inherit;
+      }
+      .scope-btn:hover { background: rgba(127, 127, 127, 0.16); }
       .section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(127, 127, 127, 0.2); }
       .ok { color: #28a745; font-size: 12px; margin: 0; }
       .err { color: #d9534f; font-size: 12px; margin: 0; word-break: break-word; }
@@ -276,12 +295,18 @@
   <body>
     <h1>AskPage</h1>
     <div id="empty" class="muted">
-      Open the AskPage popup → <strong>Toggle inspect</strong> to pick an
-      element, or <strong>Scan page</strong> to ask about the whole page.
+      Click <strong>Pick element</strong> or <strong>Ask whole page</strong>
+      in the popup to get started.
     </div>
 
     <div id="content" hidden>
-      <p class="meta" id="meta"></p>
+      <div id="scope-bar" class="scope-bar">
+        <p class="meta" id="meta"></p>
+        <div class="scope-actions">
+          <button type="button" id="scope-pick" class="scope-btn">Pick element</button>
+          <button type="button" id="scope-page" class="scope-btn">Whole page</button>
+        </div>
+      </div>
 
       <div class="section" id="collect-section" hidden>
         <h2>Auto-collect items</h2>
