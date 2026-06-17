@@ -75,6 +75,15 @@
         color: inherit;
       }
       .link-btn:hover { opacity: 1; }
+      .stale-banner {
+        background: rgba(255, 193, 7, 0.08);
+        border: 1px solid rgba(255, 193, 7, 0.35);
+        border-radius: 4px;
+        padding: 12px 14px;
+        margin-top: 8px;
+      }
+      .stale-banner p { margin: 0 0 6px 0; }
+      .stale-banner p:last-of-type { margin-bottom: 10px; }
       .collect-suggest {
         margin: 6px 0;
         padding: 7px 10px;
@@ -297,6 +306,15 @@
     <div id="empty" class="muted">
       Click <strong>Pick element</strong> or <strong>Ask whole page</strong>
       in the popup to get started.
+    </div>
+
+    <div id="stale" class="stale-banner" hidden>
+      <p><strong>Page changed.</strong></p>
+      <p class="muted small">Pick an element or scan the whole page to continue.</p>
+      <div class="scope-actions">
+        <button type="button" id="stale-pick" class="scope-btn">Pick element</button>
+        <button type="button" id="stale-page" class="scope-btn">Whole page</button>
+      </div>
     </div>
 
     <div id="content" hidden>

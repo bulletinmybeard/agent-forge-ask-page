@@ -41,6 +41,9 @@ const collectCancelBtn = document.getElementById("collect-cancel-btn") as HTMLBu
 const collectStatusEl = document.getElementById("collect-status") as HTMLParagraphElement;
 const scopePickBtn = document.getElementById("scope-pick") as HTMLButtonElement;
 const scopePageBtn = document.getElementById("scope-page") as HTMLButtonElement;
+const staleEl = document.getElementById("stale") as HTMLDivElement;
+const stalePickBtn = document.getElementById("stale-pick") as HTMLButtonElement;
+const stalePageBtn = document.getElementById("stale-page") as HTMLButtonElement;
 const attachScreenshotEl = document.getElementById("attach-screenshot") as HTMLInputElement;
 const autoAllowEl = document.getElementById("auto-allow") as HTMLInputElement;
 const secretModal = document.getElementById("secret-modal") as HTMLDivElement;
@@ -52,6 +55,8 @@ let turns: Turn[] = [];
 let inFlight = false;
 let pendingTurnEl: HTMLDivElement | null = null;
 let collecting = false;
+let trackedTabId: number | null = null;
+let trackedUrl: string | null = null;
 
 // Agent WebSocket — one session per snapshot/conversation.
 let ws: AgentWS | null = null;
@@ -106,6 +111,12 @@ async function ensureConnected(): Promise<AgentWS> {
 function renderSnapshot(snap: PageSnapshot): void {
   const isRescan = lastSnapshot !== null && turns.length > 0;
   lastSnapshot = snap;
+  trackedUrl = snap.page_url;
+  if (trackedTabId === null) {
+    activeTabId().then((id) => {
+      trackedTabId = id;
+    });
+  }
 
   if (!isRescan) {
     turns = [];
@@ -115,6 +126,7 @@ function renderSnapshot(snap: PageSnapshot): void {
   }
 
   emptyEl.hidden = true;
+  staleEl.hidden = true;
   contentEl.hidden = false;
 
   if (snap.scope_kind === "element" && snap.element) {
@@ -232,6 +244,22 @@ function clearConversation(): void {
   resetSession();
   setStatus("Conversation cleared. Ask anything about the same snapshot.", "");
   promptEl.focus();
+}
+
+function resetForNavigation(): void {
+  lastSnapshot = null;
+  turns = [];
+  pendingTurnEl = null;
+  ws?.disconnect();
+  ws = null;
+  sessionId = null;
+  sentFirstQuery = false;
+  collecting = false;
+  chatEl.replaceChildren();
+  contentEl.hidden = true;
+  emptyEl.hidden = true;
+  staleEl.hidden = false;
+  resetCollectUI();
 }
 
 // -- Auto-collect ----------------------------------------------------------
@@ -429,6 +457,26 @@ scopePickBtn.addEventListener("click", async () => {
 scopePageBtn.addEventListener("click", async () => {
   const tabId = await activeTabId();
   if (!tabId) return;
+  await ensureContentScript(tabId);
+  chrome.tabs.sendMessage(tabId, { type: "scan-page" }).catch((e) => {
+    setStatus(`Couldn't reach content script: ${e}`, "err");
+  });
+});
+
+stalePickBtn.addEventListener("click", async () => {
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  trackedTabId = tabId;
+  await ensureContentScript(tabId);
+  chrome.tabs.sendMessage(tabId, { type: "toggle-inspect" }).catch((e) => {
+    setStatus(`Couldn't reach content script: ${e}`, "err");
+  });
+});
+
+stalePageBtn.addEventListener("click", async () => {
+  const tabId = await activeTabId();
+  if (!tabId) return;
+  trackedTabId = tabId;
   await ensureContentScript(tabId);
   chrome.tabs.sendMessage(tabId, { type: "scan-page" }).catch((e) => {
     setStatus(`Couldn't reach content script: ${e}`, "err");
@@ -740,6 +788,23 @@ async function drainPendingSnapshot(): Promise<void> {
   }
 }
 
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (trackedTabId === null || tabId !== trackedTabId) return;
+  if (!lastSnapshot && !trackedUrl) return;
+
+  const urlChanged = typeof changeInfo.url === "string" && changeInfo.url !== trackedUrl;
+  const reloaded = changeInfo.status === "complete" && lastSnapshot !== null;
+
+  if (urlChanged || reloaded) {
+    trackedUrl = changeInfo.url ?? trackedUrl;
+    resetForNavigation();
+  }
+});
+
 drainPendingSnapshot().catch(console.error);
+
+activeTabId().then((id) => {
+  trackedTabId = id;
+});
 
 console.log("[askpage-sidepanel] loaded");
