@@ -35,14 +35,60 @@
       }
       button:hover { background: rgba(127, 127, 127, 0.16); }
       #status { font-size: 12px; }
+      .picker { display: flex; gap: 6px; align-items: center; }
+      .picker select { flex: 1; padding: 6px 8px; font-size: 13px; border-radius: 4px; border: 1px solid rgba(127, 127, 127, 0.35); background: rgba(127, 127, 127, 0.06); color: inherit; }
+      .iconbtn { padding: 4px 8px; font-size: 14px; }
+      input[type="url"], input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 13px;
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(127, 127, 127, 0.35);
+        background: rgba(127, 127, 127, 0.06);
+        color: inherit;
+      }
+      label { margin-top: 10px; }
+      .checkbox-row { display: flex; align-items: center; gap: 6px; flex-direction: row; cursor: pointer; }
+      .checkbox-row input[type="checkbox"] { width: auto; margin: 0; }
     </style>
   </head>
   <body>
     <h1>AskPage settings</h1>
     <p class="muted">
-      Tuning for <strong>Auto-collect items</strong> — the scroll-and-gather loop used for
-      lazy-loaded / virtualised lists in the side panel. Connection settings (URL, provider,
-      profile) live in the toolbar popup.
+      Connection and tuning settings for AskPage.
+    </p>
+
+    <h2>Connection</h2>
+    <div>
+      <label for="base">AgentForge base URL</label>
+      <input id="base" type="url" placeholder="https://agent.example.com" />
+    </div>
+    <div>
+      <label for="apikey">API key</label>
+      <input id="apikey" type="password" placeholder="API key (optional)" />
+    </div>
+    <div>
+      <label for="provider">Provider</label>
+      <div class="picker">
+        <select id="provider"></select>
+        <button type="button" id="refresh" class="iconbtn" title="Re-fetch providers">&#x21bb;</button>
+      </div>
+    </div>
+    <div class="actions" id="conn-actions">
+      <button type="button" id="conn-save">Save</button>
+      <button type="button" id="conn-test">Test connection</button>
+      <span id="conn-status"></span>
+    </div>
+
+    <h2>Behavior</h2>
+    <label class="checkbox-row">
+      <input type="checkbox" id="confirm-on-nav" />
+      Confirm before discarding conversations
+    </label>
+    <p class="muted small" style="margin: 4px 0 0 0;">
+      When a page navigates or reloads, ask before clearing an active conversation.
     </p>
 
     <h2>Auto-collect</h2>

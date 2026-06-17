@@ -1,7 +1,6 @@
 {
   "name": "ask-page",
   "version": "0.1.0",
-  "private": true,
   "description": "AskPage — Chrome extension to pick any element (or the whole page) and ask an LLM anything about it.",
   "type": "module",
   "license": "MIT",
